@@ -1,19 +1,13 @@
-extern crate libc;
-extern crate gtk;
-extern crate gtk_sys;
-extern crate glib;
+
 use std::boxed::Box as Box_;
 use gtk::prelude::*;
 use glib::signal::connect_raw;
-use libc::{c_char, c_int};
-use glib_sys::{gboolean};
+use libc::{c_int};
 use glib::translate::*;
 use glib::translate::{FromGlibPtrFull};
 use std::mem::transmute;
+use crate::xfce::ffi::*;
 
-
-pub type XfceSize = c_int;
-pub type XfcePanelPluginPointer = * mut gtk_sys::GtkWidget;
 
 pub struct XfcePanelPlugin {
     pointer: * mut gtk_sys::GtkWidget,
@@ -40,7 +34,7 @@ impl XfcePanelPlugin {
         }
     }
 
-    fn noarg_connect<F: Fn() + 'static>(&self, signal: &'static str, f: F) -> glib::SignalHandlerId {
+    pub fn noarg_connect<F: Fn() + 'static>(&self, signal: &'static str, f: F) -> glib::SignalHandlerId {
         unsafe extern "C" fn trampoline_noarg<F: Fn() + 'static>(
             _this: *mut gtk_sys::GtkWidget,
             f: glib_sys::gpointer
@@ -58,7 +52,7 @@ impl XfcePanelPlugin {
             )
         }
     }
-    fn onearg_connect<T, F: Fn(T) + 'static>(&self, signal: &'static str, f: F) -> glib::SignalHandlerId {
+    pub fn onearg_connect<T, F: Fn(T) + 'static>(&self, signal: &'static str, f: F) -> glib::SignalHandlerId {
         unsafe extern "C" fn trampoline_onearg<T, F: Fn(T) + 'static>(
             _this: *mut gtk_sys::GtkWidget,
             t: T,
@@ -135,7 +129,7 @@ impl XfcePanelPlugin {
         }
     }
 
-    pub fn save_location(&mut self, create: bool) -> Option<String> {
+    pub fn save_location(&self, create: bool) -> Option<String> {
         unsafe {
             let value = xfce_panel_plugin_save_location(self.pointer, create.to_glib());
             if value.is_null() {
@@ -146,28 +140,7 @@ impl XfcePanelPlugin {
         }
     }
 
-}
 
-
-#[allow(dead_code)]
-#[repr(C)]
-#[derive(Debug)]
-pub enum XfceScreenPosition {
-    None,
-    NorthWestHorizontal,
-    North,
-    NorthEastHorizontal,
-    NorthWestVertical,
-    West,
-    SouthWestVertical,
-    NorthEastVertical,
-    East,
-    SouthEastVertical,
-    SouthWestHorizontal,
-    South,
-    SouthEastHorizontal,
-    FloatingHorizontal,
-    FloatingVertical,
 }
 
 pub enum XfceScreenPositionDirection { None, Floating, Top, Left, Right, Bottom }
@@ -213,29 +186,4 @@ impl XfceScreenPosition {
             XfceScreenPosition::FloatingVertical => XfceScreenPositionOrientation::Vertical
         }
     }
-}
-
-
-#[link(name = "xfce4panel-2.0")]
-#[allow(dead_code)]
-extern {
-    fn xfce_panel_plugin_get_name(plugin: XfcePanelPluginPointer) -> * mut c_char;
-    fn xfce_panel_plugin_get_id(plugin: XfcePanelPluginPointer) -> * mut c_char;
-    fn xfce_panel_plugin_get_display_name(plugin: XfcePanelPluginPointer) -> * mut c_char;
-    
-    fn xfce_panel_plugin_get_orientation(plugin: XfcePanelPluginPointer) -> gtk_sys::GtkOrientation;
-    fn xfce_panel_plugin_get_screen_position(plugin: XfcePanelPluginPointer) -> XfceScreenPosition;
-    fn xfce_panel_plugin_get_size(plugin: XfcePanelPluginPointer) -> c_int;
-    fn xfce_panel_plugin_get_expand(plugin: XfcePanelPluginPointer) -> gboolean;
-    fn xfce_panel_plugin_set_expand(plugin: XfcePanelPluginPointer, expand: gboolean);
-
-    fn xfce_panel_plugin_menu_show_about(plugin: XfcePanelPluginPointer); 
-    fn xfce_panel_plugin_menu_show_configure(plugin: XfcePanelPluginPointer);
-
-    fn xfce_panel_plugin_add_action_widget (plugin: XfcePanelPluginPointer, widget: * mut gtk_sys::GtkWidget); 
-    fn xfce_panel_plugin_menu_insert_item (plugin: XfcePanelPluginPointer, item: * mut gtk_sys::GtkMenuItem); 
-
-
-    fn xfce_panel_plugin_lookup_rc_file (plugin: XfcePanelPluginPointer) -> * mut c_char;
-    fn xfce_panel_plugin_save_location (plugin: XfcePanelPluginPointer, create: gboolean) -> * mut c_char;
 }

@@ -30,7 +30,7 @@ Installing from a fresh Xubuntu in a VirtualBox leads to these prerequisites, be
 
 ### Installing the plugin
 
-Run `cargo build --release` to make sure everything is installed properly. This first compilation takes a prohibitive amount of time, and might be an indicator that using the whole `serde` and `serde_json` crates just to easily store and retrieve a config file with two fields might be a bit silly. Disabling optional features will probably alleviate some of this. Still, 1GB of dependencies for a tiny .so-file means there's a lot of room for improvements.
+Run `cargo build --release` to make sure everything is installed properly.
 
 
 ```
@@ -44,9 +44,7 @@ The RSS Plugin should now be available to add.
 
 ### Known problems:
 
-- **After configuring a feed, restart the plugin with `xfce4-panel -r`** 
 - A fresh Xubuntu install has no `/usr/lib/xfce4/panel-plugins/`-folder. If this is the case for you, run `mkdir -p /usr/lib/xfce4/panel-plugins`.
-- If it crashes after adding the first time, try `xfce4-panel -q`, followed by `PANEL_DEBUG=1 xfce4-panel`. On a fresh Xubuntu install, this was somehow necessary, and afterwards it ran fine even outside of debug-mode 
 - On the same Xubuntu install as above, the icon cache was not cleared. This resulted in no icon on the add-menu and about dialog, but otherwise has no effect. The icon in the panel is based on svg as a string within the code.  
 
 
@@ -54,8 +52,6 @@ The RSS Plugin should now be available to add.
 Future:
 -------
 
-- (!) Fixing polling problems after configuratio
-- Improve Rust compile-time.
 - Visually pleasing item-view
 - Configurable polling-interval
 - Configurable item-view, icons and colors

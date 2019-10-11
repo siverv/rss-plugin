@@ -1,7 +1,8 @@
 
-extern crate gdk_pixbuf;
-extern crate gio;
+use gdk_pixbuf;
+use gio;
 
+type Icon = gdk_pixbuf::Pixbuf;
 
 
 pub fn icon_by_color_and_size(color: &str, size: usize) -> Option<gdk_pixbuf::Pixbuf> {
@@ -29,6 +30,35 @@ pub fn icon_by_color_and_size(color: &str, size: usize) -> Option<gdk_pixbuf::Pi
         Err(err) => {
             println!("ERROR: {:?}", err);
             None
+        }
+    }
+}
+
+pub enum IconType { Alert, Idle, Inactive, Notify }
+pub struct IconSet {
+    pub size: usize,
+    icons: (Icon, Icon, Icon, Icon)
+}
+impl IconSet {
+
+    pub fn new (size: usize) -> Self {
+        let colors = ("#900", "#CCC", "rgba(255,255,255,0.2)", "#F60");
+        let icons = (
+            icon_by_color_and_size(colors.0, size).unwrap(),
+            icon_by_color_and_size(colors.1, size).unwrap(),
+            icon_by_color_and_size(colors.2, size).unwrap(),
+            icon_by_color_and_size(colors.3, size).unwrap()
+        );
+
+        IconSet { size, icons }
+    }
+
+    pub fn get(&self, icon_type: IconType) -> &Icon {
+        match icon_type {
+            IconType::Alert => &self.icons.0,
+            IconType::Idle => &self.icons.1,
+            IconType::Inactive => &self.icons.2,
+            IconType::Notify => &self.icons.3,
         }
     }
 }

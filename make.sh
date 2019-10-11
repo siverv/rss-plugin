@@ -2,5 +2,5 @@
 main=rssplugin
 
 gcc -Wall -shared -o lib${main}.so -fPIC plugin.c\
-    -Isrc  -L. -l:target/release/librsrssplugin.so\
+    -Isrc -L. $PWD/target/release/librs${main}.so\
     `pkg-config --cflags --libs libxfce4panel-2.0`\

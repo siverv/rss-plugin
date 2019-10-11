@@ -1,6 +1,6 @@
 [package]
 name = "rssrsr"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Siver K. Volle <8384586+siverv@users.noreply.github.com>"]
 edition = "2018"
 
@@ -17,6 +17,7 @@ gdk-pixbuf = "0.7"
 gio = "0.7"
 glib = "0.8"
 glib-sys = "0.9"
+gobject-sys = "0.9"
+gdk-sys = "0.9"
+gdk = "0.11"
 rss = { version = "1.0", features = ["from_url"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"

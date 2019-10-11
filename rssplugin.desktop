@@ -2,7 +2,7 @@
 Type=X-XFCE-PanelPlugin
 Encoding=UTF-8
 Name=RSS Plugin
-Comment=Basic RSS plugin for xfce4-panel.
+Comment=RSS plugin for xfce4-panel.
 Icon=rssplugin
 X-XFCE-Module=rssplugin
 X-XFCE-Internal=FALSE
