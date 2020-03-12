@@ -1,11 +1,15 @@
 use crate::xfce::ffi::{XfceScreenPosition, XfceSize};
 use std::fmt;
+use crate::gui::{Gui};
+use crate::app::{App, AppEvent};
+
 
 pub enum ErrorType {
     InvalidFeedUrl,
     CouldNotGetChannel,
     // CouldNotSave,
-    CouldNotReadConfigFile
+    // CouldNotReadConfigFile,
+    CouldNotDispatch
 }
 
 impl fmt::Display for ErrorType {
@@ -20,24 +24,28 @@ impl fmt::Display for ErrorType {
             // ErrorType::CouldNotSave => {
             //     write!(f, "{}", "Could not save")
             // }
-            ErrorType::CouldNotReadConfigFile => {
-                write!(f, "{}", "Could not read config file")
+            // ErrorType::CouldNotReadConfigFile => {
+            //     write!(f, "{}", "Could not read config file")
+            // }
+            ErrorType::CouldNotDispatch => {
+                write!(f, "{}", "Could not dispatch state in app")
             }
         }
     }
 }
 
+pub enum StateEvent {
+    Error(ErrorType),
+    SetOrientation(gtk::Orientation),
+    SetPosition(XfceScreenPosition),
+    SetSize(XfceSize)
+}
 
 pub struct State {
     pub error: Option<ErrorType>,
     pub orientation: gtk::Orientation,
     pub position: XfceScreenPosition,
-    pub size: XfceSize,
-    pub seen_ids: Vec<rss::Guid>,
-    pub ids: Vec<rss::Guid>,
-    pub items: Vec<rss::Item>,
-    pub show_items: bool,
-    pub is_polling: bool
+    pub size: XfceSize
 }
 
 impl State {
@@ -46,22 +54,25 @@ impl State {
             error: None,
             orientation: gtk::Orientation::Horizontal,
             position: XfceScreenPosition::None,
-            size: 0,
-            seen_ids: Vec::new(),
-            ids: Vec::new(),
-            items: Vec::new(),
-            show_items: false,
-            is_polling: false
+            size: 30,
         }
     }
-    pub fn set_orientation (&mut self, orientation: gtk_sys::GtkOrientation) {
-        match orientation {
-            gtk_sys::GTK_ORIENTATION_VERTICAL => {
-                self.orientation = gtk::Orientation::Vertical;
-            },
-            _ => {
-                self.orientation = gtk::Orientation::Horizontal;
+
+    pub fn reducer (app: &mut App, event: AppEvent) {
+        if let AppEvent::StateEvent(event) = event {
+            match event {
+                StateEvent::Error(error) => {
+                    app.state.error = Some(error);
+                }
+                StateEvent::SetOrientation(orientation) => app.state.orientation = orientation,
+                StateEvent::SetPosition(position) => app.state.position = position,
+                StateEvent::SetSize(size) => {
+                    app.state.size = size;
+                    Gui::recreate_icons(app);
+                }
             }
         }
     }
 }
+
+

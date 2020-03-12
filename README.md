@@ -52,8 +52,9 @@ The RSS Plugin should now be available to add.
 Future:
 -------
 
-- Visually pleasing item-view
+- Cookies and custom headers.
 - Configurable polling-interval
+- Visually pleasing item-view
 - Configurable item-view, icons and colors
 - Better, more idiomatic, rust.
 - Remove last dependency of C
@@ -72,6 +73,7 @@ Using:
 Inspired by:
 - [The Xfce4 Sample Plugin](https://git.xfce.org/panel-plugins/xfce4-sample-plugin/) and the accompanying [how-to guide for panel plugins](https://wiki.xfce.org/dev/howto/panel_plugins)
 - [gDiceRoller](https://gitlab.gnome.org/NoraCodes/gdiceroller/) and the accompanying [tutorial on GTK with rust](https://nora.codes/tutorial/speedy-desktop-apps-with-gtk-and-rust/)
+- [Best Practices With GTK + Rust](https://mmstick.keybase.pub/rust-gtk-practices/)
 
 
 For everything else:

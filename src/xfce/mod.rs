@@ -7,4 +7,3 @@ extern crate glib;
 pub mod ffi;
 pub mod plugin;
 pub mod rc;
-// pub mod object;
