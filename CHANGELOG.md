@@ -2,6 +2,15 @@
 Changelog
 =========
 
+0.2.2
+-----
+*2020-03-14*
+
+Features:
+- Shrinkwrapping to simplify gui-widgets
+- Option to preserve previously fetched items, instead of only showing the most recently fetched.
+
+
 0.2.1
 -----
 *2020-03-12*
@@ -12,7 +21,6 @@ Features:
 
 Notes:
 - Instead of passing state/gui/config around with (A)Rc and RefCell, there is now a single source of App, mutably borrowed into the message receiever. The messages are currently handled by excessive use of associated functions with `&mut App` as the first argument, but this could (and probably should) be changed to something more idiomatic rust. Perhaps traits.
-
 
 
 0.2.0

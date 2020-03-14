@@ -68,12 +68,12 @@ Using:
 - [Gtk-rs](https://gtk-rs.org/)
 - [Xfce4-panel](https://docs.xfce.org/xfce/xfce4-panel/start)
 - [RS's RSS](https://github.com/rust-syndication/rss)
-- [Serde.rs](https://serde.rs/). 
+- [Shrinkwraprs](https://lib.rs/crates/shrinkwraprs)
 
 Inspired by:
 - [The Xfce4 Sample Plugin](https://git.xfce.org/panel-plugins/xfce4-sample-plugin/) and the accompanying [how-to guide for panel plugins](https://wiki.xfce.org/dev/howto/panel_plugins)
 - [gDiceRoller](https://gitlab.gnome.org/NoraCodes/gdiceroller/) and the accompanying [tutorial on GTK with rust](https://nora.codes/tutorial/speedy-desktop-apps-with-gtk-and-rust/)
-- [Best Practices With GTK + Rust](https://mmstick.keybase.pub/rust-gtk-practices/)
+- Shrinkwrapping and Message Passing, as suggested by [Best Practices With GTK + Rust](https://mmstick.keybase.pub/rust-gtk-practices/)
 
 
 For everything else:

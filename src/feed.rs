@@ -1,6 +1,6 @@
 
 use crate::app::{App, AppEvent};
-use crate::state::{StateEvent};
+use crate::state::{ErrorType, StateEvent};
 use glib::SourceId;
 use glib::translate::{FromGlib, ToGlib};
 
@@ -15,6 +15,8 @@ pub enum FeedEvent {
     Polled(Option<()>),
     Start,
     Started,
+    Test,
+    Tested(Result<(), ErrorType>),
     // Stop,
     Stopped(ReasonForStopping),
     // Clear,
@@ -49,6 +51,8 @@ impl Feed {
             match event {
                 FeedEvent::Poll => Feed::poll_feed(app),
                 FeedEvent::Start => Feed::start_polling(app),
+                FeedEvent::Test => Feed::test_config(app),
+                FeedEvent::Tested(result) => Feed::handle_test_result(app, result),
                 // FeedEvent::Stop => Feed::stop_polling(app, ReasonForStopping::CleanStop),
                 // FeedEvent::Clear => Feed::clear_feed(app),
                 FeedEvent::MarkAllAsSeen => Feed::mark_all_as_seen(app),
@@ -109,21 +113,57 @@ impl Feed {
         app.feed.unseen_ids = Vec::new();
     }
 
+    fn test_config(app: &mut App) {
+        if let Some(dialog) = &app.gui.config_dialog {
+            let mut tmp_config = app.config.clone();
+            if let Err(error) = tmp_config.set_from_dialog(dialog) {
+                app.dispatch(AppEvent::FeedEvent(FeedEvent::Tested(Err(error))));
+            } else {
+                let channel = rss::Channel::from_url(&tmp_config.feed);
+                if channel.is_ok() {
+                    app.dispatch(AppEvent::FeedEvent(FeedEvent::Tested(Ok(()))));
+                } else {
+                    app.dispatch(AppEvent::FeedEvent(FeedEvent::Tested(Err(ErrorType::CouldNotGetChannel))));
+                }
+            }
+        } else {
+            app.dispatch(AppEvent::FeedEvent(FeedEvent::Tested(Err(ErrorType::NoConfigDialog))));
+        }
+    }
+
+    fn handle_test_result(app: &mut App, result: Result<(), ErrorType>) {
+        if let Some(dialog) = &app.gui.config_dialog {
+            dialog.update_test_results(result);
+        }
+    }
+
     fn poll_feed(app: &mut App) {
+        // TODO: Make polling non-blocking.
         let feed_url = app.config.feed.clone();
         let channel = rss::Channel::from_url(&feed_url);
         if let Ok(channel) = channel {
-            // QUESTION: Always clear out old, or keep appending new items?
-            let mut new_items: Vec<rss::Item> = channel.items().iter().filter(|item| {
+            let items = channel.items();
+            let mut new_items: Vec<rss::Item> = items.iter().filter(|item| {
                 !app.feed.all_ids.contains(item.guid().unwrap())
             }).map(|item| item.clone()).collect();
-            new_items.iter().for_each(|item| {
-                let id = item.guid().unwrap();
-                app.feed.all_ids.push(id.clone());
-                app.feed.unseen_ids.push(id.clone());
-            });
+
+            if app.config.preserve_items {
+                new_items.iter().for_each(|item| {
+                    app.feed.all_ids.push(item.guid().unwrap().clone());
+                });
+            } else {
+                app.feed.all_ids = items.iter().map(|item| item.guid().unwrap().clone()).collect();
+            }
+            app.feed.unseen_ids = app.feed.unseen_ids.iter().filter(|id| {
+                app.feed.all_ids.contains(id)
+            }).chain(new_items.iter().map(|item| item.guid().unwrap())).map(|id| id.clone()).collect();
+
             if new_items.len() > 0 {
-                app.feed.items.append(&mut new_items);
+                if app.config.preserve_items {
+                    app.feed.items.append(&mut new_items);
+                } else {
+                    app.feed.items = Vec::from(items);
+                }
                 app.dispatch(AppEvent::FeedEvent(
                     FeedEvent::Polled(Some(()))
                 ));

@@ -9,17 +9,21 @@ pub enum ErrorType {
     CouldNotGetChannel,
     // CouldNotSave,
     // CouldNotReadConfigFile,
-    CouldNotDispatch
+    CouldNotDispatch,
+    NoConfigDialog,
 }
 
 impl fmt::Display for ErrorType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             ErrorType::InvalidFeedUrl => {
-                write!(f, "{}", "Bad feed")
+                write!(f, "{}", "Bad feed url")
+            },
+            ErrorType::NoConfigDialog => {
+                write!(f, "{}", "No config dialog open")
             },
             ErrorType::CouldNotGetChannel => {
-                write!(f, "{}", "Error")
+                write!(f, "{}", "Could not get channel")
             },
             // ErrorType::CouldNotSave => {
             //     write!(f, "{}", "Could not save")

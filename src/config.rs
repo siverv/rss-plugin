@@ -1,10 +1,10 @@
 
-use gtk::{WidgetExt,ToggleButtonExt,EntryExt};
+use gtk::{WidgetExt};
 
 use crate::app::{App, AppEvent};
 use crate::state::{StateEvent};
-use crate::gui::{ConfigGui};
 use crate::feed::{FeedEvent};
+use crate::ui::config_dialog::ConfigDialog;
 
 use crate::xfce::rc::*;
 
@@ -20,6 +20,7 @@ pub enum ConfigEvent {
 pub struct Config {
     loaded: bool,
     pub active: bool,
+    pub preserve_items: bool,
     pub feed: String,
     pub polling_interval: u32,
     pub save_location: Option<String>,
@@ -30,6 +31,7 @@ impl Default for Config {
         Config {
             loaded: false,
             active: false,
+            preserve_items: false,
             feed: String::default(),
             polling_interval: u32::default(),
             save_location: None
@@ -60,15 +62,17 @@ impl Config {
 
     pub fn load(app: &mut App) {
         if let Some(rc_file) = &app.config.save_location {
-            let (feed, active, interval) = rc_simple(rc_file, |rc| {
+            let (feed, active, interval, preserve_items) = rc_simple(rc_file, |rc| {
                 (
                     read_entry(rc, "feed", "").clone(),
                     read_bool_entry(rc, "active", false),
-                    std::convert::TryInto::try_into(read_int_entry(rc, "polling_interval", 60 * 1000)).unwrap()
+                    std::convert::TryInto::try_into(read_int_entry(rc, "polling_interval", 60 * 1000)).unwrap(),
+                    read_bool_entry(rc, "preserve_items", false),
                 )
             });
             app.config.feed = feed;
             app.config.active = active;
+            app.config.preserve_items = preserve_items;
             app.config.polling_interval = interval;
             app.dispatch(AppEvent::ConfigEvent(
                 ConfigEvent::Loaded(true)
@@ -86,6 +90,7 @@ impl Config {
                 write_entry(rc, "feed", &app.config.feed);
                 write_bool_entry(rc, "active", app.config.active);
                 write_int_entry(rc, "polling_interval", std::convert::TryInto::try_into(app.config.polling_interval).unwrap());
+                write_bool_entry(rc, "preserve_items", app.config.preserve_items);
             });
             app.dispatch(AppEvent::ConfigEvent(ConfigEvent::Saved(true)));
             return true;
@@ -95,52 +100,49 @@ impl Config {
         }
     }
 
-    fn is_feed_valid(feed: &str) -> bool {
-        return feed.len() >= 5;
-    }
-
-    pub fn set_and_validate_config_from_gui(app: &mut App) -> bool {
-        if let Some(ConfigGui {dialog: _, active, feed}) = &app.gui.config {
-            app.config.active = active.get_active();
-            if let Some(value) = feed.get_text() {
-                // TODO: If new feed, dispatch FeedEvent::Clear
-                if Self::is_feed_valid(value.as_str()) {
-                    app.config.feed = String::from(value.as_str());
-                } else {
-                    app.config.active = false;
-                    app.dispatch(AppEvent::StateEvent(
-                        StateEvent::Error(
-                            crate::state::ErrorType::InvalidFeedUrl
-                        )
-                    ));
-                }
-            };
+    pub fn set_from_dialog(&mut self, dialog: &ConfigDialog) -> Result<(),crate::state::ErrorType> {
+        self.active = dialog.get_active();
+        self.preserve_items = dialog.get_preserve_items();
+        let feed = dialog.get_feed();
+        // TODO: If new feed, dispatch FeedEvent::Clear
+        if is_feed_valid(&feed) {
+            self.feed = feed;
+        } else {
+            self.active = false;
+            return Err(crate::state::ErrorType::InvalidFeedUrl);
         }
-        return true;
+        return Ok(());
     }
 
-    pub fn save_and_close_config_dialog(app: &mut App){
-        if let None = app.gui.config {
+    fn save_and_close_config_dialog(app: &mut App){
+        if let Some(dialog) = &app.gui.config_dialog {
+            if let Err(error) = app.config.set_from_dialog(&dialog) {
+                app.dispatch(AppEvent::StateEvent(
+                    StateEvent::Error(error)
+                ));
+                return;
+            }
+            let ok = Config::save(app);
+            if !ok {
+                // TODO: Handle
+            }
+            Config::close_config_dialog(app);
+            if app.config.active {
+                app.dispatch(AppEvent::FeedEvent(FeedEvent::Start))
+            }
+        } else {
             // TODO: Error
             return;
-        }
-        let valid = Config::set_and_validate_config_from_gui(app);
-        if !valid {
-            // TODO: Handle
-        }
-        let ok = Config::save(app);
-        if !ok {
-            // TODO: Handle
-        }
-        Config::close_config_dialog(app);
-        if app.config.active {
-            app.dispatch(AppEvent::FeedEvent(FeedEvent::Start))
-        }
+        } 
     }
 
-    pub fn close_config_dialog(app: &mut App) {
-        if let Some(config_gui) = &app.gui.config {
-            config_gui.dialog.destroy();
+    fn close_config_dialog(app: &mut App) {
+        if let Some(dialog) = &app.gui.config_dialog {
+            dialog.destroy();
         }
     }
+}
+
+fn is_feed_valid(feed: &str) -> bool {
+    return feed.len() >= 5;
 }

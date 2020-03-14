@@ -6,7 +6,7 @@ extern crate glib_sys;
 extern crate gobject_sys;
 extern crate gdk_sys;
 extern crate rss;
-
+#[macro_use] extern crate shrinkwraprs;
 
 mod res;
 mod xfce;
