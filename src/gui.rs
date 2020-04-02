@@ -38,7 +38,10 @@ pub struct Gui {
     pub panel_icon: ui::panel_icon::PanelIcon,
     pub about_dialog: Option<AboutDialog>,
     pub config_dialog: Option<ConfigDialog>,
-    pub feed_dialog: Option<FeedDialog>
+    pub feed_dialog: Option<FeedDialog>,
+    menu_item_error_message: gtk::MenuItem,
+    menu_item_refresh_button: gtk::MenuItem,
+    menu_item_refresh_connection: Option<glib::SignalHandlerId>
 }
 
 
@@ -60,6 +63,13 @@ impl Gui {
         plugin_container.show_all();
         plugin.show_about();
         plugin.show_configure();
+        
+        let menu_item_error_message = gtk::MenuItem::new();
+        menu_item_error_message.override_color(gtk::StateFlags::NORMAL, Some(&gdk::RGBA{red: 0.9, green: 0.1, blue: 0.1, alpha: 1.0}));
+        plugin.menu_insert_item(&menu_item_error_message);
+
+        let menu_item_refresh_button = gtk::MenuItem::new_with_label("Refresh");
+        plugin.menu_insert_item(&menu_item_refresh_button);
 
         let gui = Gui {
             tx,
@@ -70,7 +80,10 @@ impl Gui {
             icons: icon::IconSet::new(30),
             config_dialog: None,
             about_dialog: None,
-            feed_dialog: None
+            feed_dialog: None,
+            menu_item_error_message,
+            menu_item_refresh_button,
+            menu_item_refresh_connection: None
         };
 
         gui.connect_plugin();
@@ -158,6 +171,12 @@ impl Gui {
                 tx.send(AppEvent::GuiEvent(GuiEvent::Toggle(Dialog::Feed))).unwrap();
             });
         }
+        {
+            let tx = self.tx.clone();
+            self.menu_item_refresh_button.connect_activate(move |_item| {
+                tx.send(AppEvent::FeedEvent(FeedEvent::Poll)).unwrap();
+            });
+        }
     }
 
     pub fn recreate_icons(app: &mut App) {
@@ -180,10 +199,29 @@ impl Gui {
         if let Some(ref err) = state.error {
             gui.panel_icon.image.set_from_pixbuf(Some(&gui.icons.get(icon::IconType::Alert)));
             gui.panel_icon.set_tooltip_text(Some(&format!("{}", err)));
+            gui.menu_item_error_message.show();
+            
+            let mut error_message = format!("{}", err);
+            let count = error_message.len() / 30;
+            for i in 0..count {
+                error_message.insert((i + 1) * 30 + i, '\n');
+            }
+            gui.menu_item_error_message.set_label(&error_message);
+            if config.active {
+                gui.menu_item_refresh_button.show();
+            } else {
+                gui.menu_item_refresh_button.hide();
+            }
         } else if !config.active {
+            gui.menu_item_error_message.hide();
+            gui.menu_item_refresh_button.hide();
             gui.panel_icon.image.set_from_pixbuf(Some(&gui.icons.get(icon::IconType::Inactive)));
             gui.panel_icon.set_tooltip_text(Some("Inactive feed"));
         } else {
+            gui.menu_item_error_message.hide();
+            gui.menu_item_refresh_button.show();
+            if gui.menu_item_refresh_connection.is_none() {
+            }
             let unseen = feed.unseen_ids.len();
             let ids = feed.all_ids.len();
             gui.panel_icon.set_tooltip_text(Some(&format!("{} unread out of {} items.", unseen, ids)));

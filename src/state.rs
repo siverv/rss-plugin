@@ -6,11 +6,13 @@ use crate::app::{App, AppEvent};
 
 pub enum ErrorType {
     InvalidFeedUrl,
-    CouldNotGetChannel,
+    // CouldNotGetChannel,
     // CouldNotSave,
     // CouldNotReadConfigFile,
     CouldNotDispatch,
     NoConfigDialog,
+    UrlRequestError(::reqwest::Error),
+    RssError(::rss::Error)
 }
 
 impl fmt::Display for ErrorType {
@@ -22,9 +24,9 @@ impl fmt::Display for ErrorType {
             ErrorType::NoConfigDialog => {
                 write!(f, "{}", "No config dialog open")
             },
-            ErrorType::CouldNotGetChannel => {
-                write!(f, "{}", "Could not get channel")
-            },
+            // ErrorType::CouldNotGetChannel => {
+            //     write!(f, "{}", "Could not get channel")
+            // },
             // ErrorType::CouldNotSave => {
             //     write!(f, "{}", "Could not save")
             // }
@@ -33,6 +35,12 @@ impl fmt::Display for ErrorType {
             // }
             ErrorType::CouldNotDispatch => {
                 write!(f, "{}", "Could not dispatch state in app")
+            },
+            ErrorType::RssError(err) => {
+                write!(f, "RSS Error: {}", err)
+            },
+            ErrorType::UrlRequestError(err) => {
+                write!(f, "URL Request Error: {}", err)
             }
         }
     }
@@ -40,6 +48,7 @@ impl fmt::Display for ErrorType {
 
 pub enum StateEvent {
     Error(ErrorType),
+    ClearError,
     SetOrientation(gtk::Orientation),
     SetPosition(XfceScreenPosition),
     SetSize(XfceSize)
@@ -65,6 +74,9 @@ impl State {
     pub fn reducer (app: &mut App, event: AppEvent) {
         if let AppEvent::StateEvent(event) = event {
             match event {
+                StateEvent::ClearError => {
+                    app.state.error = None;
+                }
                 StateEvent::Error(error) => {
                     app.state.error = Some(error);
                 }

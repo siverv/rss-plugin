@@ -3,6 +3,7 @@ use crate::app::{App, AppEvent};
 use crate::state::{ErrorType, StateEvent};
 use glib::SourceId;
 use glib::translate::{FromGlib, ToGlib};
+use crate::config::Config;
 
 pub enum ReasonForStopping {
     // CleanStop,
@@ -67,13 +68,13 @@ impl Feed {
 
     fn start_polling(app: &mut App) {
         if app.feed.is_polling {
-            // QUESTION: Trigger immediate polling?
+            app.dispatch(AppEvent::FeedEvent(FeedEvent::Poll));
             return;
         }
         app.feed.is_polling = true;
         let timeout = Feed::get_timeout(app);
         app.dispatch(AppEvent::FeedEvent(FeedEvent::Started));
-        app.dispatch(AppEvent::FeedEvent(FeedEvent::Poll)); // QUESTION: Replace with immediate polling?
+        app.dispatch(AppEvent::FeedEvent(FeedEvent::Poll));
         {
             let tx = app.tx.clone();
             app.feed.polling_id = Some(gtk::timeout_add(timeout, move || {
@@ -84,7 +85,7 @@ impl Feed {
     }
 
     fn stop_polling(app: &mut App, reason: ReasonForStopping) {
-        if !app.feed.is_polling {
+        if !app.feed.is_polling || !app.config.active {
             return;
         }
         app.feed.is_polling = false;
@@ -119,11 +120,11 @@ impl Feed {
             if let Err(error) = tmp_config.set_from_dialog(dialog) {
                 app.dispatch(AppEvent::FeedEvent(FeedEvent::Tested(Err(error))));
             } else {
-                let channel = rss::Channel::from_url(&tmp_config.feed);
+                let channel = Feed::read_channel(&tmp_config);
                 if channel.is_ok() {
                     app.dispatch(AppEvent::FeedEvent(FeedEvent::Tested(Ok(()))));
-                } else {
-                    app.dispatch(AppEvent::FeedEvent(FeedEvent::Tested(Err(ErrorType::CouldNotGetChannel))));
+                } else if let Err(err) = channel {
+                    app.dispatch(AppEvent::FeedEvent(FeedEvent::Tested(Err(err))));
                 }
             }
         } else {
@@ -137,10 +138,43 @@ impl Feed {
         }
     }
 
+    fn read_channel(config: &Config) -> Result<rss::Channel, ErrorType> {
+        let feed_url = &config.feed;
+        // TODO: Make non-blocking
+        let client = reqwest::blocking::Client::new();
+        let request = if let crate::config::RequestMethod::Post = config.feed_request_method {
+            client.post(feed_url)
+        } else {
+            client.get(feed_url)
+        };
+        let request = Feed::apply_headers_to_request(config, request);
+        let request = if let crate::config::RequestMethod::Post = config.feed_request_method {
+            if let Some(text) = &config.feed_request_body {
+                request.body(String::from(text))
+            } else {
+                request
+            }
+        } else {
+            request
+        };
+        let content = request.send();
+        match content {
+            Err(err) => {
+                Err(ErrorType::UrlRequestError(err))
+            }
+            Ok(content) => {
+                rss::Channel::read_from(std::io::BufReader::new(content))
+                    .map_err(|err| ErrorType::RssError(err))
+            }
+        }
+    }
+
     fn poll_feed(app: &mut App) {
+        if !app.config.active {
+            return;
+        }
         // TODO: Make polling non-blocking.
-        let feed_url = app.config.feed.clone();
-        let channel = rss::Channel::from_url(&feed_url);
+        let channel = Feed::read_channel(&app.config);
         if let Ok(channel) = channel {
             let items = channel.items();
             let mut new_items: Vec<rss::Item> = items.iter().filter(|item| {
@@ -172,13 +206,19 @@ impl Feed {
                     FeedEvent::Polled(None)
                 ));
             }
-        } else {
+        } else if let Err(err) = channel {
             if app.feed.is_polling {
                 Feed::stop_polling(app, ReasonForStopping::FaultyStop);
             }
-            app.dispatch(AppEvent::StateEvent(StateEvent::Error(
-                crate::state::ErrorType::CouldNotGetChannel
-            )));
+            app.dispatch(AppEvent::StateEvent(StateEvent::Error(err)));
         }
+    }
+
+
+    fn apply_headers_to_request(config: &Config, mut builder: ::reqwest::blocking::RequestBuilder) -> ::reqwest::blocking::RequestBuilder {
+        for (field, value) in config.feed_headers.iter() {
+            builder = builder.header(field, value);
+        }
+        builder
     }
 }

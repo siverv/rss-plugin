@@ -1,6 +1,6 @@
 [package]
 name = "rssrsr"
-version = "0.2.2"
+version = "0.2.3"
 authors = ["Siver K. Volle <8384586+siverv@users.noreply.github.com>"]
 edition = "2018"
 
@@ -20,5 +20,6 @@ glib-sys = "0.9"
 gobject-sys = "0.9"
 gdk-sys = "0.9"
 gdk = "0.11"
-rss = { version = "1.0", features = ["from_url"] }
+rss = "1.0"
+reqwest = { version = "0.10", features = ["blocking"] }
 shrinkwraprs = "0.3.0"

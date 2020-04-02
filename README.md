@@ -52,8 +52,6 @@ The RSS Plugin should now be available to add.
 Future:
 -------
 
-- Cookies and custom headers.
-- Configurable polling-interval
 - Visually pleasing item-view
 - Configurable item-view, icons and colors
 - Better, more idiomatic, rust.
@@ -68,6 +66,7 @@ Using:
 - [Gtk-rs](https://gtk-rs.org/)
 - [Xfce4-panel](https://docs.xfce.org/xfce/xfce4-panel/start)
 - [RS's RSS](https://github.com/rust-syndication/rss)
+- [Reqwest](https://github.com/seanmonstar/reqwest)
 - [Shrinkwraprs](https://lib.rs/crates/shrinkwraprs)
 
 Inspired by:
